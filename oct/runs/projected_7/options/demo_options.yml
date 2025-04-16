@@ -52,7 +52,7 @@ network_g:
 ZEST: False
 # path
 path:
-  pretrain_network_g: /Users/ramachandrank/Documents/Tbpl/SSAI-3D/pretrained_models/NAFNet-REDS-width64.pth
+  pretrain_network_g: "C:/Users/rkulothu/Documents/Repos/SSAI-oct/SSAI-3D/pretrained_models/NAFNet-REDS-width64.pth"
   strict_load_g: true
   resume_state: ~
 

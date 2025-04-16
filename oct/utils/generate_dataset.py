@@ -5,6 +5,7 @@ import os
 import numpy as np
 from oct.utils import filter
 from scipy import signal
+import cv2
 
 ground_truth_dir = "gt"
 low_quality_dir = "lq"
@@ -93,5 +94,40 @@ def create_zs_dataset(input_pth):
         lq_s = lq_s/lq_s.max()
         lq_s = lq_s * 255
         lq_s = lq_s.astype(np.uint8)
-        tifffile.imwrite(os.path.join(zs_low_quality_dir, 'zs_lq', file), lq_s)
-        tifffile.imwrite(os.path.join(zs_ground_truth_dir, 'zs_gt', file), gt_s)
+        tifffile.imwrite(os.path.join(input_pth, zs_low_quality_dir, file), lq_s)
+        tifffile.imwrite(os.path.join(input_pth, zs_ground_truth_dir, file), gt_s)
+
+def generate_oct_raw_data(raw_pth, save_pth, dr, xy_required=False, xz_required=False, yz_required=False):
+    raw_data = tifffile.imread(raw_pth)
+    raw_data = normalize(raw_data)
+    print(raw_data.dtype)
+    print(raw_data.shape)
+    
+    assert len(raw_data.shape) == 3
+    xz_len = raw_data.shape[-1]
+    yz_len = raw_data.shape[1]
+    xy_len = raw_data.shape[0]
+
+    if xy_required:
+        path_xy = os.path.join(save_pth,'test_xy')    
+        os.makedirs(path_xy, exist_ok=True)
+        for idx in range(xy_len):
+            slice = raw_data[idx]
+            slice = cv2.resize(slice, (raw_data.shape[-1]*dr, raw_data.shape[1]))
+            tifffile.imwrite(os.path.join(path_xy, f'{idx}.tiff'), slice)
+
+    if yz_required:
+        path_yz = os.path.join(save_pth,'test_yz')
+        os.makedirs(path_yz, exist_ok=True)
+        for idx in range(yz_len):
+            slice = raw_data[:,idx]
+            slice = cv2.resize(slice, (raw_data.shape[-1]*dr, raw_data.shape[0]*dr))
+            tifffile.imwrite(os.path.join(path_yz, f'{idx}.tiff'), slice)
+
+    if xz_required:
+        path_xz = os.path.join(save_pth,'test_xz')
+        os.makedirs(path_xz, exist_ok=True)
+        for idx in range(xz_len):
+            slice = raw_data[:,:,idx]
+            slice = cv2.resize(slice, (raw_data.shape[1], raw_data.shape[0]*dr))
+            tifffile.imwrite(os.path.join(path_xz, f'{idx}.tiff'), slice)
