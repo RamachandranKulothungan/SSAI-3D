@@ -15,3 +15,4 @@ matplotlib
 tifffile
 numpy>=1,<2
 easydict
+matplotlib-scalebar
