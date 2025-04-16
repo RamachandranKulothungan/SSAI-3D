@@ -1,0 +1,6 @@
+.venv/
+.eggs/
+**/__pycache__/*
+.DS_Store
+*.tif
+*.tiff
