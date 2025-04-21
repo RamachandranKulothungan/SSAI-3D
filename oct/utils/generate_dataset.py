@@ -6,6 +6,7 @@ import numpy as np
 from oct.utils import filter
 from scipy import signal
 import cv2
+import matplotlib.pyplot as plt
 
 ground_truth_dir = "gt"
 low_quality_dir = "lq"
@@ -30,8 +31,21 @@ def create_projected_data(raw_tif_pth, save_pth, project_depth = 7):
         tifffile.imwrite(os.path.join(projected_pth, f'{slice_idx}.tiff'), avg_slice)
     return
 
+def create_projected_data_with_1step_slide(raw_tif_pth, save_pth, project_depth = 4, projected_dir = projected_dir):
+    raw_data = tifffile.imread(raw_tif_pth)
+    raw_data = normalize(raw_data)
+
+    projected_pth = os.path.join(save_pth, projected_dir)
+    os.makedirs(projected_pth, exist_ok = True)
+
+    # Create convolved images from projections of project_depth slice sets
+    for slice_idx in range(500 -  project_depth):
+        avg_slice = np.average(raw_data[slice_idx:slice_idx + project_depth], 0)
+        avg_slice = normalize(avg_slice)
+        tifffile.imwrite(os.path.join(projected_pth, f'{slice_idx}.tiff'), avg_slice)
+
 def create_synthetic_data_from_slices(input_pth, output_pth,
-    kernel_num = 3, downsample_rate = 5):
+    kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, blur_height = False):
     kernel_lst = []
     res_lst = [[] for _ in range(kernel_num)]
     gt_lst = [[] for _ in range(kernel_num)]
@@ -39,8 +53,20 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
     for idx, std in enumerate(np.arange(3,101,2)):
         if idx >= kernel_num:
             break
-        kernel_lst.append(filter.g_filter(51, 0, std))
+        std_width = 0
+        std_height = 0
+        if blur_width:
+            std_width = std
+        if blur_height:
+            std_height = std
+        kernel_lst.append(filter.g_filter(51, std_width, std_height))
     
+    for i in range(len(kernel_lst)):
+        plt.imshow(kernel_lst[i], cmap='jet', extent=[-51//2, 51//2, -51//2, 51//2])
+        plt.colorbar(label='Intensity')
+        plt.title(f"Gaussian Filter ({i})")
+        plt.show()
+
     gt_pth = os.path.join(output_pth, ground_truth_dir)
     lq_pth = os.path.join(output_pth, low_quality_dir)
     os.makedirs(gt_pth, exist_ok = True)
@@ -51,7 +77,7 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
         raw_slice = tifffile.imread(os.path.join(input_pth, file))
         for idx, k in enumerate(kernel_lst):
             conved_slice = signal.fftconvolve(raw_slice, k, mode = 'same')
-            conved_slice = resize(conved_slice, downsample_rate, raw_slice)
+            conved_slice = filter.downsample_and_resize(conved_slice, dr_h, dr_w)
             res_lst[idx].append(conved_slice)
             gt_lst[idx].append(raw_slice)
             assert conved_slice.shape == raw_slice.shape
@@ -65,7 +91,7 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
             gt_slice = gtstack[slice_idx]
             tifffile.imwrite(os.path.join(gt_pth, f'{idx}_{slice_idx}.tiff'), gt_slice)
             tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}.tiff'), lq_slice)
-    return
+
 
 # Samples 10 images from the dataset and creates a new dataset with the samples
 def create_zs_dataset(input_pth):
@@ -131,3 +157,4 @@ def generate_oct_raw_data(raw_pth, save_pth, dr, xy_required=False, xz_required=
             slice = raw_data[:,:,idx]
             slice = cv2.resize(slice, (raw_data.shape[1], raw_data.shape[0]*dr))
             tifffile.imwrite(os.path.join(path_xz, f'{idx}.tiff'), slice)
+
