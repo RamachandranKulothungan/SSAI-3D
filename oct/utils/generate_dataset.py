@@ -92,6 +92,31 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
             tifffile.imwrite(os.path.join(gt_pth, f'{idx}_{slice_idx}.tiff'), gt_slice)
             tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}.tiff'), lq_slice)
 
+def create_downsampled_data_from_slices(input_pth, output_pth, dr_h = 2, dr_w = 2):
+    res_lst = []
+    gt_lst = []
+
+    gt_pth = os.path.join(output_pth, ground_truth_dir)
+    lq_pth = os.path.join(output_pth, low_quality_dir)
+    os.makedirs(gt_pth, exist_ok = True)
+    os.makedirs(lq_pth, exist_ok = True)
+    files = os.listdir(input_pth)
+
+    for file in files:
+        raw_slice = tifffile.imread(os.path.join(input_pth, file))
+        dr_slice = filter.downsample_and_resize(raw_slice, dr_h, dr_w)
+        res_lst.append(dr_slice)
+        gt_lst.append(raw_slice)
+        assert dr_slice.shape == raw_slice.shape
+
+    lqstack = np.stack(res_lst)
+    gtstack = np.stack(gt_lst)
+    for slice_idx, lq_slice in enumerate(lqstack):
+        gt_slice = gtstack[slice_idx]
+        lq_slice = normalize(lq_slice)
+        gt_slice = normalize(gt_slice)
+        tifffile.imwrite(os.path.join(gt_pth, f'dr_{slice_idx}.tiff'), gt_slice)
+        tifffile.imwrite(os.path.join(lq_pth, f'dr_{slice_idx}.tiff'), lq_slice)
 
 # Samples 10 images from the dataset and creates a new dataset with the samples
 def create_zs_dataset(input_pth):
@@ -147,7 +172,7 @@ def generate_oct_raw_data(raw_pth, save_pth, dr, xy_required=False, xz_required=
         os.makedirs(path_yz, exist_ok=True)
         for idx in range(yz_len):
             slice = raw_data[:,idx]
-            slice = cv2.resize(slice, (raw_data.shape[-1]*dr, raw_data.shape[0]*dr))
+            slice = cv2.resize(slice, (raw_data.shape[-1], raw_data.shape[0]*dr))
             tifffile.imwrite(os.path.join(path_yz, f'{idx}.tiff'), slice)
 
     if xz_required:
