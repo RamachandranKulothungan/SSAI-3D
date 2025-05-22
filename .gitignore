@@ -1,10 +1,12 @@
 .venv/
 .eggs/
-**/__pycache__/*
+__pycache__
 .DS_Store
 *.tif
 *.tiff
 *.pth
 basicsr.egg-info/
-basicsr/
 *.pth
+*cpython-39.pyc
+events*
+*.state
