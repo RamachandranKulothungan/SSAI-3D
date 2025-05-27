@@ -1,8 +1,9 @@
 import numpy as np
 import cv2
 from scipy.ndimage import gaussian_filter
+from scipy.ndimage import rotate
 
-def g_filter(kernel_size, std_x, std_y):
+def g_filter(kernel_size, std_x, std_y, rotation=0):
     # Create an impulse (delta function) image
     size = kernel_size
     impulse = np.zeros((size, size))
@@ -11,7 +12,7 @@ def g_filter(kernel_size, std_x, std_y):
     sigma_x = std_x  # Spread in x direction
     sigma_y = std_y  # Spread in y direction
     filtered = gaussian_filter(impulse, sigma=[sigma_y, sigma_x])  # Note: sigma order is (row, col)
-    return filtered
+    return rotate(filtered, angle=rotation)
 
 def downsample_and_resize(image, dr_h, dr_w):
     # Downsample the image

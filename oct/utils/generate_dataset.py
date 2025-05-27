@@ -45,7 +45,7 @@ def create_projected_data_with_1step_slide(raw_tif_pth, save_pth, project_depth 
         tifffile.imwrite(os.path.join(projected_pth, f'{slice_idx}.tiff'), avg_slice)
 
 def create_synthetic_data_from_slices(input_pth, output_pth,
-    kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, blur_height = False):
+    kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, blur_height = False, rotation=0):
     kernel_lst = []
     res_lst = [[] for _ in range(kernel_num)]
     gt_lst = [[] for _ in range(kernel_num)]
@@ -59,7 +59,7 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
             std_width = std
         if blur_height:
             std_height = std
-        kernel_lst.append(filter.g_filter(51, std_width, std_height))
+        kernel_lst.append(filter.g_filter(51, std_width, std_height, rotation))
     
     for i in range(len(kernel_lst)):
         plt.imshow(kernel_lst[i], cmap='jet', extent=[-51//2, 51//2, -51//2, 51//2])
