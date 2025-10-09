@@ -45,7 +45,8 @@ def create_projected_data_with_1step_slide(raw_tif_pth, save_pth, project_depth 
         tifffile.imwrite(os.path.join(projected_pth, f'{slice_idx}.tiff'), avg_slice)
 
 def create_synthetic_data_from_slices(input_pth, output_pth,
-    kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, blur_height = False, rotation=0):
+                                    kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, 
+                                    blur_height = False, rotation=0, suffix=""):
     kernel_lst = []
     res_lst = [[] for _ in range(kernel_num)]
     gt_lst = [[] for _ in range(kernel_num)]
@@ -89,8 +90,87 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
         gtstack = normalize(gtstacks[idx])
         for slice_idx, lq_slice in enumerate(lqstack):
             gt_slice = gtstack[slice_idx]
-            tifffile.imwrite(os.path.join(gt_pth, f'{idx}_{slice_idx}.tiff'), gt_slice)
-            tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}.tiff'), lq_slice)
+            tifffile.imwrite(os.path.join(gt_pth, f'{idx}_{slice_idx}{suffix}.tiff'), gt_slice)
+            tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}{suffix}.tiff'), lq_slice)
+
+def create_synthetic_data_from_3d_stack(raw_tif_pth, save_pth,
+                            kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, 
+                            blur_height = False, rotation=0, suffix=""):
+
+    raw_data = tifffile.imread(raw_tif_pth)
+    raw_data = normalize(raw_data)
+    kernel_lst = []
+    res_lst = [[] for _ in range(kernel_num)]
+    gt_lst = [[] for _ in range(kernel_num)]
+    z_slices = raw_data.shape[0]
+    
+    for idx, std in enumerate(np.arange(3,101,2)):
+        if idx >= kernel_num:
+            break
+        std_width = 0
+        std_height = 0
+        if blur_width:
+            std_width = std
+        if blur_height:
+            std_height = std
+        kernel_lst.append(filter.g_filter(51, std_width, std_height, rotation))
+
+    for i in range(len(kernel_lst)):
+        plt.imshow(kernel_lst[i], cmap='jet', extent=[-51//2, 51//2, -51//2, 51//2])
+        plt.colorbar(label='Intensity')
+        plt.title(f"Gaussian Filter ({i})")
+        plt.show()
+
+    gt_pth = os.path.join(save_pth, 'gt')
+    lq_pth = os.path.join(save_pth, 'lq')
+    os.makedirs(gt_pth, exist_ok = True)
+    os.makedirs(lq_pth, exist_ok = True)
+    for slice_idx in range(z_slices):
+        raw_slice = raw_data[slice_idx]
+        for idx, k in enumerate(kernel_lst):
+            conved_slice = signal.fftconvolve(raw_slice, k, mode = 'same')
+            conved_slice = filter.downsample_and_resize(conved_slice, dr_h, dr_w)
+            res_lst[idx].append(conved_slice)
+            gt_lst[idx].append(raw_slice)
+            assert conved_slice.shape == raw_slice.shape
+
+    lqstacks = [np.stack(s) for s in res_lst]
+    gtstacks = [np.stack(s) for s in gt_lst]
+    for idx, stack in enumerate(lqstacks):
+        lqstack = normalize(stack)
+        gtstack = normalize(gtstacks[idx])
+        for slice_idx, lq_slice in enumerate(lqstack):
+            gt_slice = gtstack[slice_idx]
+            tifffile.imwrite(os.path.join(gt_pth, f'{idx}_{slice_idx}{suffix}.tiff'), gt_slice)
+            tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}{suffix}.tiff'), lq_slice)
+
+def create_downsampled_data_from_3d_stack(raw_tif_pth, output_pth, dr_h = 2, dr_w = 2):
+    raw_data = tifffile.imread(raw_tif_pth)
+    raw_data = normalize(raw_data)
+    res_lst = []
+    gt_lst = []
+    z_slices = raw_data.shape[0]
+    
+    gt_pth = os.path.join(output_pth, ground_truth_dir)
+    lq_pth = os.path.join(output_pth, low_quality_dir)
+    os.makedirs(gt_pth, exist_ok = True)
+    os.makedirs(lq_pth, exist_ok = True)
+
+    for slice_idx in range(z_slices):
+        raw_slice = raw_data[slice_idx]
+        dr_slice = filter.downsample_and_resize(raw_slice, dr_h, dr_w)
+        res_lst.append(dr_slice)
+        gt_lst.append(raw_slice)
+        assert dr_slice.shape == raw_slice.shape
+
+    lqstack = np.stack(res_lst)
+    gtstack = np.stack(gt_lst)
+    for slice_idx, lq_slice in enumerate(lqstack):
+        gt_slice = gtstack[slice_idx]
+        lq_slice = normalize(lq_slice)
+        gt_slice = normalize(gt_slice)
+        tifffile.imwrite(os.path.join(gt_pth, f'dr_{slice_idx}.tiff'), gt_slice)
+        tifffile.imwrite(os.path.join(lq_pth, f'dr_{slice_idx}.tiff'), lq_slice)
 
 def create_downsampled_data_from_slices(input_pth, output_pth, dr_h = 2, dr_w = 2):
     res_lst = []
