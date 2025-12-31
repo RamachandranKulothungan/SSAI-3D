@@ -39,6 +39,12 @@ def calculate_metrics(volume_ref, volume_test, axis=0):
     return psnr_list, ssim_list
 
 def plot_metrics(psnr_list, ssim_list):
+    """
+    Plot PSNR and SSIM values across slices.
+    Parameters:
+        psnr_list (list): List of PSNR values.
+        ssim_list (list): List of SSIM values.
+    """
     slices = range(len(psnr_list))
     
     plt.figure(figsize=(12,5))

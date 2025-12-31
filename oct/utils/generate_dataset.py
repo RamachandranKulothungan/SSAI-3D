@@ -15,6 +15,14 @@ zs_low_quality_dir = "zs_lq"
 projected_dir = "projected_xy"
 
 def create_projected_data(raw_tif_pth, save_pth, project_depth = 7):
+    """
+    Create projected images from raw OCT data by averaging every 'project_depth' slices.
+     Parameters:
+        raw_tif_pth (str): Path to the raw OCT tif file.
+        save_pth (str): Directory to save the projected images.
+        project_depth (int): Number of slices to average for each projection.
+    
+    """
 
     raw_data = tifffile.imread(raw_tif_pth)
     raw_data = normalize(raw_data)
@@ -29,9 +37,16 @@ def create_projected_data(raw_tif_pth, save_pth, project_depth = 7):
         avg_slice = np.average(raw_data[slice_idx * project_depth:(slice_idx+1) * project_depth], 0)
         avg_slice = normalize(avg_slice)
         tifffile.imwrite(os.path.join(projected_pth, f'{slice_idx}.tiff'), avg_slice)
-    return
+
 
 def create_projected_data_with_1step_slide(raw_tif_pth, save_pth, project_depth = 4, projected_dir = projected_dir):
+    """
+    Create projected images from raw OCT data by averaging every 'project_depth' slices with a sliding window of 1.
+    Parameters:
+        raw_tif_pth (str): Path to the raw OCT tif file.
+        save_pth (str): Directory to save the projected images.
+        project_depth (int): Number of slices to average for each projection.
+    """
     raw_data = tifffile.imread(raw_tif_pth)
     raw_data = normalize(raw_data)
 
@@ -47,6 +62,19 @@ def create_projected_data_with_1step_slide(raw_tif_pth, save_pth, project_depth 
 def create_synthetic_data_from_slices(input_pth, output_pth,
                                     kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, 
                                     blur_height = False, rotation=0, suffix=""):
+    """
+    Create synthetic low-quality OCT slices from high-quality slices by applying Gaussian blur and downsampling.
+    Parameters:
+        input_pth (str): Path to the directory containing high-quality OCT slices.
+        output_pth (str): Directory to save the generated low-quality and ground truth slices.
+        kernel_num (int): Number of different Gaussian kernels to use.
+        dr_h (int): Downsampling rate in height.
+        dr_w (int): Downsampling rate in width.
+        blur_width (bool): Whether to apply blur in width direction.
+        blur_height (bool): Whether to apply blur in height direction.
+        rotation (float): Rotation angle for the Gaussian filter.
+        suffix (str): Suffix to add to the saved file names.    
+    """
     kernel_lst = []
     res_lst = [[] for _ in range(kernel_num)]
     gt_lst = [[] for _ in range(kernel_num)]
@@ -96,6 +124,19 @@ def create_synthetic_data_from_slices(input_pth, output_pth,
 def create_synthetic_data_from_3d_stack(raw_tif_pth, save_pth,
                             kernel_num = 3, dr_h = 2, dr_w = 2, blur_width = False, 
                             blur_height = False, rotation=0, suffix=""):
+    """
+    Create synthetic low-quality OCT volumes from a high-quality volume by applying Gaussian blur and downsampling
+    Parameters:
+        raw_tif_pth (str): Path to the raw high-quality OCT tif file.
+        save_pth (str): Directory to save the generated low-quality and ground truth volumes.
+        kernel_num (int): Number of different Gaussian kernels to use.
+        dr_h (int): Downsampling rate in height.
+        dr_w (int): Downsampling rate in width.
+        blur_width (bool): Whether to apply blur in width direction.
+        blur_height (bool): Whether to apply blur in height direction.
+        rotation (float): Rotation angle for the Gaussian filter.
+        suffix (str): Suffix to add to the saved file names.    
+    """
 
     raw_data = tifffile.imread(raw_tif_pth)
     raw_data = normalize(raw_data)
@@ -145,6 +186,14 @@ def create_synthetic_data_from_3d_stack(raw_tif_pth, save_pth,
             tifffile.imwrite(os.path.join(lq_pth, f'{idx}_{slice_idx}{suffix}.tiff'), lq_slice)
 
 def create_downsampled_data_from_3d_stack(raw_tif_pth, output_pth, dr_h = 2, dr_w = 2):
+    """
+    Create downsampled low-quality OCT volume from a high-quality volume.
+    Parameters:
+        raw_tif_pth (str): Path to the raw high-quality OCT tif file.
+        output_pth (str): Directory to save the generated low-quality and ground truth volumes.
+        dr_h (int): Downsampling rate in height.
+        dr_w (int): Downsampling rate in width.
+    """
     raw_data = tifffile.imread(raw_tif_pth)
     raw_data = normalize(raw_data)
     res_lst = []
@@ -173,6 +222,14 @@ def create_downsampled_data_from_3d_stack(raw_tif_pth, output_pth, dr_h = 2, dr_
         tifffile.imwrite(os.path.join(lq_pth, f'dr_{slice_idx}.tiff'), lq_slice)
 
 def create_downsampled_data_from_slices(input_pth, output_pth, dr_h = 2, dr_w = 2):
+    """
+    Create downsampled low-quality OCT slices from high-quality slices.
+    Parameters:
+        input_pth (str): Path to the directory containing high-quality OCT slices.
+        output_pth (str): Directory to save the generated low-quality and ground truth slices.
+        dr_h (int): Downsampling rate in height.
+        dr_w (int): Downsampling rate in width.
+    """
     res_lst = []
     gt_lst = []
 
@@ -200,6 +257,14 @@ def create_downsampled_data_from_slices(input_pth, output_pth, dr_h = 2, dr_w = 
 
 # Samples 10 images from the dataset and creates a new dataset with the samples
 def create_zs_dataset(input_pth):
+    """
+    Create a zero-shot dataset by sampling 10 random images from the existing dataset.
+    Snapshots are saved in 'zs_gt' and 'zs_lq' directories.
+    Takes small crops from the center of the images for faster processing.
+
+    Parameters:
+        input_pth (str): Path to the directory containing high-quality and low-quality OCT slices
+    """
     os.makedirs(os.path.join(input_pth, zs_ground_truth_dir), exist_ok = True)
     os.makedirs(os.path.join(input_pth, zs_low_quality_dir), exist_ok = True)
     gt_pth = os.path.join(input_pth, ground_truth_dir)
@@ -211,8 +276,6 @@ def create_zs_dataset(input_pth):
     for file in files:
         gt_s = tifffile.imread(os.path.join(gt_pth, file))
         lq_s = tifffile.imread(os.path.join(lq_pth, file))
-        x = lq_s.shape[0]
-        y = lq_s.shape[1]
 
         x_center, y_center = lq_s.shape[0] // 2, lq_s.shape[1] // 2
         gt_s = gt_s[x_center-2*d:x_center+d, y_center-2*d:y_center+d]
@@ -229,6 +292,17 @@ def create_zs_dataset(input_pth):
         tifffile.imwrite(os.path.join(input_pth, zs_ground_truth_dir, file), gt_s)
 
 def generate_oct_raw_data(raw_pth, save_pth, dr, xy_required=False, xz_required=False, yz_required=False):
+    """
+    Generate OCT raw data slices in specified planes from a 3D raw OCT volume.
+    
+    Parameters:
+        raw_pth (str): Path to the raw OCT tif file.
+        save_pth (str): Path to the directory where the generated slices will be saved.
+        dr (int): Downsampling rate.
+        xy_required (bool): Whether to generate XY slices.
+        xz_required (bool): Whether to generate XZ slices.
+        yz_required (bool): Whether to generate YZ slices.
+    """
     raw_data = tifffile.imread(raw_pth)
     raw_data = normalize(raw_data)
     print(raw_data.dtype)

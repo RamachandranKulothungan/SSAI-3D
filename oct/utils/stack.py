@@ -4,6 +4,12 @@ import os
 import numpy as np
 
 def create_3d_tiff(input_stack_dir, output_file):
+    """
+    Create a 3D TIFF file from a stack of 2D TIFF images.
+    Parameters:
+        input_stack_dir (str): Directory containing 2D TIFF images named as '0.tiff', '1.tiff', ...
+        output_file (str): Path to save the output 3D TIFF file.
+    """
     rec_stack = []
     dlen = len(os.listdir(input_stack_dir))
 
